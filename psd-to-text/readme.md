@@ -44,4 +44,6 @@ Save file extract_psd_text.py
 
 ```
 python extract_psd_text.py
+
+result ->file.txt
 ```
