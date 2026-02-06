@@ -1,1 +1,116 @@
-list domw image demo
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lazy Load Images Gallery</title>
+    <style>
+        body { font-family: sans-serif; background: #f0f2f5; padding: 20px; }
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .image-card {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .image-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            display: block;
+            background: #e0e0e0; /* Màu nền chờ khi chưa load ảnh */
+            transition: opacity 0.3s;
+            opacity: 0; /* Ẩn ảnh trước khi load xong để tạo hiệu ứng fade-in */
+        }
+        .image-card img.loaded {
+            opacity: 1;
+        }
+        .file-name {
+            padding: 10px;
+            font-size: 12px;
+            color: #555;
+            word-break: break-all;
+            border-top: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Danh sách hình ảnh (Lazy Load)</h2>
+    <div class="gallery" id="gallery">
+        </div>
+
+    <script>
+        // Danh sách file của bạn
+        const images = [
+            "./earth-space-digital-art-qhd-320x240.jpg",
+            "./high-resolution-blue-digital-world-map-lyta391uhvbhlgs8.jpg",
+            "./lights-of-universe-1080x1920.jpg",
+            "./lights-of-universe-1920x1080.jpg",
+            "./meteors-universe-4k-240x320.jpg",
+            "./meteors-universe-4k-320x240.jpg",
+            "./planets-240x320.jpg",
+            "./planets-320x240.jpg",
+            "./planets-480x800.jpg",
+            "./star-home-planets-1080x1920.jpg",
+            "./star-home-planets-1360x768.jpg",
+            "./star-home-planets-1920x1200.jpg",
+            "./star-home-planets-240x320.jpg",
+            "./star-home-planets-320x240.jpg",
+            "./technology-digital-world-map-niarlt9v95dbsqw5.jpg",
+            "./the-wonderful-golden-gate-bridge-in-the-blue-hour-ln-1080x1920.jpg",
+            "./the-wonderful-golden-gate-bridge-in-the-blue-hour-ln-1080x2160.jpg",
+            "./the-wonderful-golden-gate-bridge-in-the-blue-hour-ln-1080x2280.jpg",
+            "./the-wonderful-golden-gate-bridge-in-the-blue-hour-ln-1080x2400.jpg",
+            "./the-wonderful-golden-gate-bridge-in-the-blue-hour-ln-1440x2560.jpg",
+            "./the-wonderful-golden-gate-bridge-in-the-blue-hour-ln-1440x2960.jpg",
+            "./the-wonderful-golden-gate-bridge-in-the-blue-hour-ln-2160x3840.jpg",
+            "./the-wonderful-golden-gate-bridge-in-the-blue-hour-ln-240x320.jpg",
+            "./the-wonderful-golden-gate-bridge-in-the-blue-hour-ln-240x400.jpg",
+            "./the-wonderful-golden-gate-bridge-in-the-blue-hour-ln-320x240.jpg",
+            "./the-wonderful-golden-gate-bridge-in-the-blue-hour-ln-320x480.jpg",
+            "./the-wonderful-golden-gate-bridge-in-the-blue-hour-ln-360x640.jpg",
+            "./the-wonderful-golden-gate-bridge-in-the-blue-hour-ln-480x800.jpg",
+            "./the-wonderful-golden-gate-bridge-in-the-blue-hour-ln-480x854.jpg",
+            "./the-wonderful-golden-gate-bridge-in-the-blue-hour-ln-540x960.jpg",
+            "./the-wonderful-golden-gate-bridge-in-the-blue-hour-ln-720x1280.jpg",
+            "./the-wonderful-golden-gate-bridge-in-the-blue-hour-ln-800x1280.jpg"
+        ];
+
+        const gallery = document.getElementById('gallery');
+
+        // 1. Tạo HTML cho từng ảnh
+        images.forEach(src => {
+            const fileName = src.split('/').pop();
+            const card = document.createElement('div');
+            card.className = 'image-card';
+            card.innerHTML = `
+                <img data-src="${src}" alt="${fileName}" class="lazy-img">
+                <div class="file-name">${fileName}</div>
+            `;
+            gallery.appendChild(card);
+        });
+
+        // 2. Thiết lập Intersection Observer để Lazy Load
+        const imageObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    img.src = img.dataset.src; // Chuyển data-src sang src thật
+                    img.onload = () => img.classList.add('loaded'); // Hiện ảnh khi đã tải xong
+                    observer.unobserve(img); // Ngừng theo dõi ảnh này sau khi đã load
+                }
+            });
+        }, {
+            rootMargin: '0px 0px 100px 0px' // Load trước khi cuộn tới 100px để trải nghiệm mượt hơn
+        });
+
+        // 3. Bắt đầu theo dõi tất cả các ảnh có class lazy-img
+        document.querySelectorAll('.lazy-img').forEach(img => imageObserver.observe(img));
+    </script>
+</body>
+</html>
