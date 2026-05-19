@@ -1,0 +1,95 @@
+
+<!doctype html>
+<html>
+<body>
+<button onclick="testLocal()">Test local</button>
+<button onclick="pushServer()">Push server</button>
+<button onclick="getServer()">Get server</button>
+
+<pre id="log"></pre>
+
+<script src="https://cdn.jsdelivr.net/gh/tranchausky/online@main/library/js/zstd-bundle.min.js"></script>
+<script>
+let simple;
+
+ZstdCodec.run(zstd => {
+  simple = new zstd.Simple();
+  log("ZSTD ready");
+});
+
+function log(...args) {
+  document.getElementById("log").textContent +=
+    args.map(x => typeof x === "object" ? JSON.stringify(x, null, 2) : x).join(" ") + "\n";
+}
+
+function compressText(text, level = 3) {
+  const input = new TextEncoder().encode(text);
+  return simple.compress(input, level);
+}
+
+function decompressText(compressed) {
+  const output = simple.decompress(compressed);
+  return new TextDecoder().decode(output);
+}
+
+function testLocal() {
+  const text = JSON.stringify({
+    name: "demo",
+    message: "hello ".repeat(10000),
+    time: new Date().toISOString()
+  });
+
+  const compressed = compressText(text, 3);
+  const restored = decompressText(compressed);
+
+  log("Original size:", text.length);
+  log("Compressed size:", compressed.length);
+  log("Restored:", JSON.parse(restored));
+}
+
+async function pushServer() {
+  const data = {
+    name: "server demo",
+    message: "hello server ".repeat(10000),
+    createdAt: new Date().toISOString()
+  };
+
+  const text = JSON.stringify(data);
+  const compressed = compressText(text, 3);
+
+  const res = await fetch("save.php", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/octet-stream",
+      "X-Original-Size": String(text.length),
+      "X-Compressed-Size": String(compressed.length)
+    },
+    body: compressed
+  });
+
+  const json = await res.json();
+  log("Saved:", json);
+}
+
+async function getServer() {
+  const id = prompt("ID cáº§n Ä‘á»c?", "1");
+
+  const res = await fetch("read.php?id=" + encodeURIComponent(id));
+
+  if (!res.ok) {
+    log("Read error:", await res.text());
+    return;
+  }
+
+  const buffer = await res.arrayBuffer();
+  const compressed = new Uint8Array(buffer);
+
+  const restored = decompressText(compressed);
+  const data = JSON.parse(restored);
+
+  log("Fetched compressed size:", compressed.length);
+  log("Decoded data:", data);
+}
+</script>
+</body>
+</html>
