@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vietnamese Syllable CSV Exporter</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 980px;
+      margin: 32px auto;
+      padding: 0 16px;
+      line-height: 1.5;
+      color: #222;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 220px;
+      padding: 12px;
+      font-size: 15px;
+      box-sizing: border-box;
+    }
+
+    button {
+      padding: 10px 16px;
+      margin: 10px 8px 10px 0;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    input {
+      padding: 8px;
+      font-size: 15px;
+      width: 300px;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 16px;
+      font-size: 14px;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+    }
+
+    th {
+      background: #f4f4f4;
+      text-align: left;
+    }
+
+    .hint {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .status {
+      margin-top: 8px;
+      font-weight: bold;
+    }
+
+    .warning {
+      color: #9a4b00;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Vietnamese Syllable CSV Exporter</h1>
+
+  <p class="hint">
+    Dán danh sách âm tiết tiếng Việt, phân tách bằng dấu phẩy hoặc xuống dòng.
+    File name dùng mã hóa an toàn để tránh trùng: <b>ă=a8, â=a6, ê=e6, ô=o6, ơ=o7, ư=u7, đ=d9</b>.
+  </p>
+
+  <textarea id="inputText" placeholder="Dán list vào đây...">boong, bông, bong, bóng, bọng, a, à, ả, ã, á, ạ, ác, ách, ạch, ai, ải, ái, am, ảm, ám, an, án, ang, ảng, áng, anh, ảnh, ánh, ao, ào, ảo, áo, áp, át, ạt, au, áy, ba, bà, bả, bã, bá, bạ, bác, bạc, bách, bạch, bai, bài, bải, bãi, bái, bại, bám, ban, bàn, bản, bán, bạn, bang, bàng, bảng, báng, bạng, banh, bành, bảnh, bánh, bạnh, bao, bào, bảo, bão, báo, bạo, bạp, bát, bạt, bàu, bảu, báu, bạu, bay, bày, bảy, boa, ca, cà, cả, cá, cạ, các, cạc, cách, cạch, cai, cài, cải, cãi, cái, cam, càm, cảm, cám, cạm, can, càn, cản, cán, cạn, cang, càng, cảng, cáng, canh, cành, cảnh, cánh, cạnh, cao, cào, cảo, cáo, cạo, cáp, cạp, cát, cau, càu, cảu, cáu, cạu, cay, cày, cáy, cạy, cha, chà, chả, chã, chá, chạ, chác, chạc, chách, chạch, chai, chài, chải, chãi, chái, chàm, chạm, chan, chán, chạn</textarea>
+
+  <div>
+    <label>
+      Tên file CSV:
+      <input id="csvName" value="vietnamese_syllables.csv" />
+    </label>
+  </div>
+
+  <div>
+    <button onclick="previewCsv()">Preview</button>
+    <button onclick="downloadCsv()">Download CSV</button>
+    <button onclick="clearInput()">Clear</button>
+  </div>
+
+  <div id="status" class="status"></div>
+
+  <table id="previewTable" style="display:none;">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>syllable</th>
+        <th>filename</th>
+        <th>tone</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const toneMap = {
+      "\u0300": "huyen",
+      "\u0301": "sac",
+      "\u0309": "hoi",
+      "\u0303": "nga",
+      "\u0323": "nang"
+    };
+
+    // Mã hóa an toàn, không bị trùng như ô -> oo.
+    // Ví dụ:
+    // boong -> boong_ngang.wav
+    // bông  -> bo6ng_ngang.wav
+    const charMap = {
+      "a": "a",
+      "ă": "a8",
+      "â": "a6",
+      "e": "e",
+      "ê": "e6",
+      "i": "i",
+      "o": "o",
+      "ô": "o6",
+      "ơ": "o7",
+      "u": "u",
+      "ư": "u7",
+      "y": "y",
+      "đ": "d9"
+    };
+
+    function detectTone(syllable) {
+      const normalized = syllable.normalize("NFD");
+
+      for (const ch of normalized) {
+        if (toneMap[ch]) {
+          return toneMap[ch];
+        }
+      }
+
+      return "ngang";
+    }
+
+    function removeToneOnly(char) {
+      return char
+        .normalize("NFD")
+        .replace(/[\u0300\u0301\u0309\u0303\u0323]/g, "")
+        .normalize("NFC");
+    }
+
+    function syllableToFilenameBase(syllable) {
+      let output = "";
+
+      for (const rawChar of syllable.toLowerCase()) {
+        const noToneChar = removeToneOnly(rawChar);
+
+        if (charMap[noToneChar]) {
+          output += charMap[noToneChar];
+        } else if (/[a-z0-9]/.test(noToneChar)) {
+          output += noToneChar;
+        } else {
+          const ascii = noToneChar
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "");
+
+          if (/[a-z0-9]/.test(ascii)) {
+            output += ascii;
+          }
+        }
+      }
+
+      return output || "unknown";
+    }
+
+    function parseInput() {
+      const text = document.getElementById("inputText").value;
+
+      const rawItems = text
+        .split(/[,;\n\r\t]+/g)
+        .map(x => x.trim().toLowerCase())
+        .filter(Boolean);
+
+      const seenSyllables = new Set();
+      const seenFilenames = new Map();
+      const rows = [];
+
+      for (const syllable of rawItems) {
+        if (seenSyllables.has(syllable)) continue;
+        seenSyllables.add(syllable);
+
+        const tone = detectTone(syllable);
+        const base = syllableToFilenameBase(syllable);
+        let filename = `${base}_${tone}.wav`;
+
+        // Safety fallback: nếu vẫn trùng filename vì input lạ, thêm suffix.
+        if (seenFilenames.has(filename)) {
+          let i = 2;
+          const originalFilename = filename;
+          while (seenFilenames.has(filename)) {
+            filename = originalFilename.replace(/\.wav$/i, `_${i}.wav`);
+            i++;
+          }
+        }
+
+        seenFilenames.set(filename, syllable);
+
+        rows.push({
+          syllable,
+          filename,
+          tone
+        });
+      }
+
+      return rows;
+    }
+
+    function escapeCsv(value) {
+      const s = String(value ?? "");
+      if (/[",\n\r]/.test(s)) {
+        return `"${s.replace(/"/g, '""')}"`;
+      }
+      return s;
+    }
+
+    function buildCsv(rows) {
+      const header = ["syllable", "filename", "tone"];
+      const lines = [header.join(",")];
+
+      for (const row of rows) {
+        lines.push([
+          escapeCsv(row.syllable),
+          escapeCsv(row.filename),
+          escapeCsv(row.tone)
+        ].join(","));
+      }
+
+      return lines.join("\n");
+    }
+
+    function previewCsv() {
+      const rows = parseInput();
+      const table = document.getElementById("previewTable");
+      const tbody = table.querySelector("tbody");
+      const status = document.getElementById("status");
+
+      tbody.innerHTML = "";
+
+      rows.forEach((row, index) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${row.syllable}</td>
+          <td>${row.filename}</td>
+          <td>${row.tone}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      table.style.display = rows.length ? "table" : "none";
+      status.textContent = `Đã parse ${rows.length} âm tiết.`;
+    }
+
+    function downloadCsv() {
+      const rows = parseInput();
+
+      if (!rows.length) {
+        alert("Chưa có dữ liệu để xuất CSV.");
+        return;
+      }
+
+      const csv = buildCsv(rows);
+
+      // BOM giúp Excel đọc Unicode tiếng Việt đúng hơn.
+      const blob = new Blob(["\uFEFF" + csv], {
+        type: "text/csv;charset=utf-8;"
+      });
+
+      let filename = document.getElementById("csvName").value.trim();
+      if (!filename) filename = "vietnamese_syllables.csv";
+      if (!filename.toLowerCase().endsWith(".csv")) filename += ".csv";
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      document.getElementById("status").textContent =
+        `Đã xuất ${rows.length} âm tiết ra file ${filename}.`;
+    }
+
+    function clearInput() {
+      document.getElementById("inputText").value = "";
+      document.getElementById("status").textContent = "";
+      document.getElementById("previewTable").style.display = "none";
+      document.querySelector("#previewTable tbody").innerHTML = "";
+    }
+
+    previewCsv();
+  </script>
+</body>
+</html>
