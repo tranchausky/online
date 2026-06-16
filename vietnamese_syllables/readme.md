@@ -34,3 +34,28 @@ Conver python
 Convert javascript
 Để chuyển âm tiết đó ra dạng duy nhất lưu database
 ```
+
+
+List file audio output.tag
+
+https://github.com/tranchausky/online/releases/tag/v2.0
+```
+
+tree /f
+Folder PATH listing for volume New Volume
+Volume serial number is B6B1-640A
+D:.
+    a6c_nang.mp3
+    a6m_hoi.mp3
+    a6m_huyen.mp3
+    a6m_nang.mp3
+    a6m_nga.mp3
+    a6m_ngang.mp3
+    a6m_sac.mp3
+    a6ng_huyen.mp3
+    a6ng_nang.mp3
+    a6n_hoi.mp3
+    a6n_ngang.mp3
+    a6n_sac.mp3
+....
+```
